@@ -123,6 +123,9 @@ public:
 
     const uri & base_uri() const;
 
+    const client_authentication_info& supported_CA() const;
+    void set_supported_CA(const client_authentication_info& ca);
+
 protected:
     _http_client_communicator(http::uri&& address, http_client_config&& client_config);
 
@@ -136,6 +139,12 @@ protected:
 private:
 
     http_client_config m_client_config;
+
+    client_authentication_info m_supported_ca;
+
+    mutable pplx::extensibility::critical_section_t m_client_authInfo_lock;
+
+    pplx::extensibility::critical_section_t m_open_lock;
 
     // Wraps opening the client around sending a request.
     void async_send_request_impl(const std::shared_ptr<request_context> &request);

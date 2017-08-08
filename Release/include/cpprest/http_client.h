@@ -25,7 +25,8 @@ namespace web { namespace http{namespace client{
 typedef IXMLHTTPRequest2* native_handle;}}}
 #else
 namespace web { namespace http{namespace client{
-typedef void* native_handle;}}}
+typedef void* native_handle;
+}}}
 #endif // __cplusplus_winrt
 
 #include <memory>
@@ -38,6 +39,7 @@ typedef void* native_handle;}}}
 #include "cpprest/details/web_utilities.h"
 #include "cpprest/details/basic_types.h"
 #include "cpprest/asyncrt_utils.h"
+#include "cpprest/client_authentication_info.h"
 
 #if !defined(CPPREST_TARGET_XP)
 #include "cpprest/oauth1.h"
@@ -421,7 +423,7 @@ private:
 #endif
 
     std::function<void(native_handle)> m_set_user_nativehandle_options;
-	std::function<void(native_handle)> m_set_user_nativesessionhandle_options;
+    std::function<void(native_handle)> m_set_user_nativesessionhandle_options;
 
 #if !defined(_WIN32) && !defined(__cplusplus_winrt) || defined(CPPREST_FORCE_HTTP_CLIENT_ASIO)
     std::function<void(boost::asio::ssl::context&)> m_ssl_context_callback;
@@ -485,6 +487,12 @@ public:
     /// </summary>
     /// <param name="stage">A shared pointer to a pipeline stage.</param>
     _ASYNCRTIMP void add_handler(const std::shared_ptr<http::http_pipeline_stage> &stage);
+
+    /// <summary>
+    /// Asynchronously checks whether client authentication is needed.
+    /// </summary>
+    /// <returns>An asynchronous operation that returns a client_authentication_info structure.</returns>
+    _ASYNCRTIMP pplx::task<client_authentication_info> authorized_ca();
 
     /// <summary>
     /// Asynchronously sends an HTTP request.
