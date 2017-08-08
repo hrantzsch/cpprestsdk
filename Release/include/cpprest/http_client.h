@@ -45,6 +45,7 @@ typedef void* native_handle;
 #endif // __cplusplus_winrt
 
 #include "cpprest/asyncrt_utils.h"
+#include "cpprest/client_authentication_info.h"
 #include "cpprest/details/basic_types.h"
 #include "cpprest/details/web_utilities.h"
 #include "cpprest/http_msg.h"
@@ -449,6 +450,12 @@ public:
     /// </summary>
     /// <param name="stage">A shared pointer to a pipeline stage.</param>
     _ASYNCRTIMP void add_handler(const std::shared_ptr<http::http_pipeline_stage>& stage);
+
+    /// <summary>
+    /// Asynchronously checks whether client authentication is needed.
+    /// </summary>
+    /// <returns>An asynchronous operation that returns a client_authentication_info structure.</returns>
+    _ASYNCRTIMP pplx::task<client_authentication_info> authorized_ca();
 
     /// <summary>
     /// Asynchronously sends an HTTP request.
