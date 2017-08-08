@@ -12,6 +12,7 @@
 *
 * =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ****/
+
 #include "stdafx.h"
 
 #include <atomic>
@@ -20,6 +21,9 @@
 #include "cpprest/http_headers.h"
 #include "../common/x509_cert_utilities.h"
 #include "http_client_impl.h"
+#include "cpprest/client_authentication_info.h"
+
+#include <schannel.h>
 
 #ifndef CPPREST_TARGET_XP
 #include <VersionHelpers.h>
@@ -1944,6 +1948,39 @@ private:
                         return;
                     }
                 }
+
+#if !defined(CPPREST_TARGET_XP)
+                if (errorCode == ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED)
+                {
+                    SecPkgContext_IssuerListInfoEx* pIssuerList = NULL;
+                    DWORD dwBufferSize = sizeof(SecPkgContext_IssuerListInfoEx*);
+
+                    if (WinHttpQueryOption(hRequestHandle,
+                        WINHTTP_OPTION_CLIENT_CERT_ISSUER_LIST,
+                        &pIssuerList,
+                        &dwBufferSize) == TRUE)
+                    {
+                        std::vector<utility::string_t> supported_ca;
+                        for (DWORD i = 0; i < pIssuerList->cIssuers; ++i)
+                        {
+                            PCERT_NAME_BLOB pcert_name = reinterpret_cast<PCERT_NAME_BLOB>(pIssuerList->aIssuers + i);
+                            const auto size = CertNameToStr(X509_ASN_ENCODING, pcert_name, CERT_X500_NAME_STR, nullptr, 0);
+
+                            auto nameString = std::unique_ptr<utility::string_t::value_type[]>(new utility::string_t::value_type [size]);
+                            CertNameToStr(X509_ASN_ENCODING, pcert_name, CERT_X500_NAME_STR, nameString.get(), size);
+
+                            supported_ca.push_back(utility::conversions::to_string_t(nameString.get()));
+                        }
+                        std::shared_ptr<client_authentication_info::type> native_context(pIssuerList, [] (client_authentication_info::pointer_type handle) -> void {
+                             auto secPointer = reinterpret_cast<SecPkgContext_IssuerListInfoEx*>(handle);
+                             GlobalFree(secPointer);
+                             handle = 0;
+                        });
+
+                        p_request_context->m_http_client->set_supported_CA(client_authentication_info(supported_ca, native_context));
+                    }
+                }
+#endif
 
                 p_request_context->report_error(errorCode, build_error_msg(error_result));
                 return;
