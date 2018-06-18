@@ -154,7 +154,7 @@ TEST(whitespace_object)
         input.append(2, ch);
         json::value val = json::value::parse(input);
         VERIFY_IS_TRUE(val.is_object());
-        VERIFY_ARE_EQUAL(U("2"), val[U("1"]).serialize());
+        VERIFY_ARE_EQUAL(U("2"), val[U("1")].serialize());
     }
 }
 
@@ -207,6 +207,12 @@ TEST(escaped_unicode_string)
     // Euro sign as a hexidecmial UTF-8
     const auto euro = to_string_t("\xE2\x82\xAC");
     VERIFY_ARE_EQUAL(euro, str.as_string());
+
+    // UTF-16 character with surrogate pair
+    str = json::value::parse(U("\"\\ud83d\\ude00\""));
+    // Grinning Face emoji as a hexadecimal UTF-8
+    const auto emoji = to_string_t("\xF0\x9F\x98\x80");
+    VERIFY_ARE_EQUAL(emoji, str.as_string());
 
     VERIFY_PARSING_THROW(json::value::parse(U("\"\\u0klB\"")));
 }
@@ -651,7 +657,7 @@ TEST(non_default_locale, "Ignore:Android", "Locale unsupported on Android")
 
         setlocale(LC_ALL, originalLocale.c_str());
         setlocale(LC_NUMERIC, changedLocale.c_str());
-    
+
         // cpprestsdk stream serialize
         utility::stringstream_t stream;
         stream << v;
@@ -731,7 +737,7 @@ TEST(parse_overload_failed)
 
     utility::stringstream_t stream;
     stream << str;
-    
+
     parsedObject = json::value::parse(arrStr, streamErr);
     VERIFY_IS_TRUE(streamErr.value() > 0);
     VERIFY_IS_TRUE(parsedObject.is_null());
