@@ -1940,7 +1940,7 @@ private:
                             const auto size = CertNameToStr(X509_ASN_ENCODING, pcert_name, CERT_X500_NAME_STR, nullptr, 0);
 
                             auto nameString = std::unique_ptr<utility::string_t::value_type[]>(new utility::string_t::value_type [size]);
-                            CertNameToStr(X509_ASN_ENCODING, pcert_name, CERT_X500_NAME_STR, nameString.get(), size);
+                            CertNameToStrW(X509_ASN_ENCODING, pcert_name, CERT_X500_NAME_STR, nameString.get(), size);
 
                             supported_ca.push_back(utility::conversions::to_string_t(nameString.get()));
                         }
