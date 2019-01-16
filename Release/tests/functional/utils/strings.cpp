@@ -22,7 +22,7 @@
 using namespace utility;
 
 namespace tests { namespace functional { namespace utils_tests {
-    
+
 SUITE(strings)
 {
 
@@ -30,7 +30,7 @@ TEST(usascii_to_utf16)
 {
     std::string str_ascii("This is a test");
     utf16string str_utf16 = utility::conversions::usascii_to_utf16(str_ascii);
-    
+
     for (size_t i = 0; i < str_ascii.size(); ++i)
     {
         VERIFY_ARE_EQUAL((utf16char)str_ascii[i], str_utf16[i]);
@@ -150,6 +150,14 @@ TEST(utf8_to_utf16)
     auto result = utility::conversions::utf8_to_utf16(input);
     VERIFY_ARE_EQUAL(0x7F, result[0]);
 
+    // null byte
+    input.clear();
+    input.push_back(0);
+    input.push_back(0);
+    result = utility::conversions::utf8_to_utf16(input);
+    VERIFY_ARE_EQUAL(0, result[0]);
+    VERIFY_ARE_EQUAL(0, result[1]);
+
     // 2 byte character
     input.clear();
     // U+80
@@ -236,7 +244,7 @@ TEST(utf16_to_utf8_errors)
 {
     VERIFY_ARE_EQUAL("ABC987", utility::conversions::utf16_to_utf8(UTF16("ABC987")));
     utf16string input;
-    
+
     // high surrogate with missing low surrogate.
     input.push_back(0xD800);
     input.push_back(0x0);
@@ -385,5 +393,5 @@ TEST(windows_category_message)
 #endif // _WIN32
 
 }
-    
+
 }}} //namespaces
