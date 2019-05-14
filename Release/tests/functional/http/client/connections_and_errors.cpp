@@ -12,10 +12,6 @@
 
 #include "stdafx.h"
 
-#ifndef __cplusplus_winrt
-#include "cpprest/http_listener.h"
-#endif
-
 #include <chrono>
 #include <thread>
 
@@ -203,67 +199,6 @@ SUITE(connections_and_errors)
         VERIFY_THROWS(request.get(), http_exception);
     }
 
-#if !defined(__cplusplus_winrt)
-    TEST_FIXTURE(uri_address, content_ready_timeout)
-    {
-        web::http::experimental::listener::http_listener listener(m_uri);
-        listener.open().wait();
-
-        streams::producer_consumer_buffer<uint8_t> buf;
-
-        listener.support([buf](http_request request) {
-            http_response response(200);
-            response.set_body(streams::istream(buf), U("text/plain"));
-            response.headers().add(header_names::connection, U("close"));
-            request.reply(response);
-        });
-
-        {
-            http_client_config config;
-            config.set_timeout(utility::seconds(1));
-            http_client client(m_uri, config);
-            http_request msg(methods::GET);
-            http_response rsp = client.request(msg).get();
-
-            // The response body should timeout and we should receive an exception
-            VERIFY_THROWS_HTTP_ERROR_CODE(rsp.content_ready().wait(), std::errc::timed_out);
-        }
-
-        buf.close(std::ios_base::out).wait();
-        listener.close().wait();
-    }
-
-    TEST_FIXTURE(uri_address, stream_timeout)
-    {
-        web::http::experimental::listener::http_listener listener(m_uri);
-        listener.open().wait();
-
-        streams::producer_consumer_buffer<uint8_t> buf;
-
-        listener.support([buf](http_request request) {
-            http_response response(200);
-            response.set_body(streams::istream(buf), U("text/plain"));
-            response.headers().add(header_names::connection, U("close"));
-            request.reply(response);
-        });
-
-        {
-            http_client_config config;
-            config.set_timeout(utility::seconds(1));
-            http_client client(m_uri, config);
-            http_request msg(methods::GET);
-            http_response rsp = client.request(msg).get();
-
-            // The response body should timeout and we should receive an exception
-            auto readTask = rsp.body().read_to_end(streams::producer_consumer_buffer<uint8_t>());
-            VERIFY_THROWS_HTTP_ERROR_CODE(readTask.wait(), std::errc::timed_out);
-        }
-
-        buf.close(std::ios_base::out).wait();
-        listener.close().wait();
-    }
-#endif
-
     TEST_FIXTURE(uri_address, cancel_before_request)
     {
         test_http_server::scoped_server scoped(m_uri);
@@ -274,45 +209,6 @@ SUITE(connections_and_errors)
         auto responseTask = c.request(methods::PUT, U("/"), source.get_token());
         VERIFY_THROWS_HTTP_ERROR_CODE(responseTask.get(), std::errc::operation_canceled);
     }
-
-// This test can't be implemented with our test server so isn't available on WinRT.
-#ifndef __cplusplus_winrt
-    TEST_FIXTURE(uri_address, cancel_after_headers)
-    {
-        web::http::experimental::listener::http_listener listener(m_uri);
-        listener.open().wait();
-        http_client c(m_uri);
-        pplx::cancellation_token_source source;
-        pplx::extensibility::event_t ev;
-
-        listener.support([&](http_request request) {
-            streams::producer_consumer_buffer<uint8_t> buf;
-            http_response response(200);
-            response.set_body(streams::istream(buf), U("text/plain"));
-            request.reply(response);
-            ev.wait();
-            buf.putc('a').wait();
-            buf.putc('b').wait();
-            buf.putc('c').wait();
-            buf.putc('d').wait();
-            buf.close(std::ios::out).wait();
-        });
-
-        auto responseTask = c.request(methods::GET, source.get_token());
-        http_response response = responseTask.get();
-        source.cancel();
-        ev.set();
-
-        VERIFY_THROWS_HTTP_ERROR_CODE(response.extract_string().get(), std::errc::operation_canceled);
-
-        // Codeplex 328.
-#if !defined(_WIN32)
-        tests::common::utilities::os_utilities::sleep(1000);
-#endif
-
-        listener.close().wait();
-    }
-#endif
 
     TEST_FIXTURE(uri_address, cancel_after_body)
     {
@@ -363,48 +259,6 @@ SUITE(connections_and_errors)
         buf.close(std::ios::out).wait();
         VERIFY_THROWS_HTTP_ERROR_CODE(responseTask.get(), std::errc::operation_canceled);
     }
-
-// This test can't be implemented with our test server since it doesn't stream data so isn't avaliable on WinRT.
-#ifndef __cplusplus_winrt
-    TEST_FIXTURE(uri_address, cancel_while_downloading_data)
-    {
-        web::http::experimental::listener::http_listener listener(m_uri);
-        listener.open().wait();
-        http_client c(m_uri);
-        pplx::cancellation_token_source source;
-
-        pplx::extensibility::event_t ev;
-        pplx::extensibility::event_t ev2;
-
-        listener.support([&](http_request request) {
-            streams::producer_consumer_buffer<uint8_t> buf;
-            http_response response(200);
-            response.set_body(streams::istream(buf), U("text/plain"));
-            request.reply(response);
-            buf.putc('a').wait();
-            buf.putc('b').wait();
-            ev.set();
-            ev2.wait();
-            buf.putc('c').wait();
-            buf.putc('d').wait();
-            buf.close(std::ios::out).wait();
-        });
-
-        auto response = c.request(methods::GET, source.get_token()).get();
-        ev.wait();
-        source.cancel();
-        ev2.set();
-
-        VERIFY_THROWS_HTTP_ERROR_CODE(response.extract_string().get(), std::errc::operation_canceled);
-
-        // Codeplex 328.
-#if !defined(_WIN32)
-        tests::common::utilities::os_utilities::sleep(1000);
-#endif
-
-        listener.close().wait();
-    }
-#endif
 
     // Try to connect to a server on a closed port and cancel the operation.
     TEST_FIXTURE(uri_address, cancel_bad_port)

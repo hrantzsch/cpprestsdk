@@ -103,18 +103,7 @@
 #include "cpprest/http_msg.h"
 
 // oauth
-#if !defined(_WIN32) || _WIN32_WINNT >= _WIN32_WINNT_VISTA
-#include "cpprest/oauth1.h"
-#endif
 #include "cpprest/oauth2.h"
-
-#if !defined(__cplusplus_winrt)
-#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
-#include "cpprest/details/http_server.h"
-#include "cpprest/details/http_server_api.h"
-#include "cpprest/http_listener.h"
-#endif // _WIN32_WINNT >= _WIN32_WINNT_VISTA
-#endif
 
 #if defined(__clang__)
 #pragma clang diagnostic pop

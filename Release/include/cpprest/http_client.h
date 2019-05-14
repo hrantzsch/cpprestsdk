@@ -55,21 +55,17 @@ typedef void* native_handle;
 #include <limits>
 #include <memory>
 
-#if !defined(CPPREST_TARGET_XP)
-#include "cpprest/oauth1.h"
-#endif
-
 #include "cpprest/oauth2.h"
 
-#if !defined(_WIN32) && !defined(__cplusplus_winrt) || defined(CPPREST_FORCE_HTTP_CLIENT_ASIO)
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wconversion"
 #endif
-#include "boost/asio/ssl.hpp"
+
+#include <botan/asio_context.h>
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
-#endif
 #endif
 
 /// The web namespace contains functionality common to multiple protocols like HTTP and WebSockets.
@@ -87,6 +83,8 @@ namespace client
 using web::credentials;
 using web::web_proxy;
 
+using ssl_context_t = Botan::TLS::Context;
+
 /// <summary>
 /// HTTP client configuration class, used to set the possible configuration options
 /// used to create an http_client instance.
@@ -102,31 +100,12 @@ public:
 #if !defined(__cplusplus_winrt)
         , m_validate_certificates(true)
 #endif
-#if !defined(_WIN32) && !defined(__cplusplus_winrt) || defined(CPPREST_FORCE_HTTP_CLIENT_ASIO)
         , m_tlsext_sni_enabled(true)
-#endif
 #if defined(_WIN32) && !defined(__cplusplus_winrt)
         , m_buffer_request(false)
 #endif
     {
     }
-
-#if !defined(CPPREST_TARGET_XP)
-    /// <summary>
-    /// Get OAuth 1.0 configuration.
-    /// </summary>
-    /// <returns>Shared pointer to OAuth 1.0 configuration.</returns>
-    const std::shared_ptr<oauth1::experimental::oauth1_config> oauth1() const { return m_oauth1; }
-
-    /// <summary>
-    /// Set OAuth 1.0 configuration.
-    /// </summary>
-    /// <param name="config">OAuth 1.0 configuration to set.</param>
-    void set_oauth1(oauth1::experimental::oauth1_config config)
-    {
-        m_oauth1 = std::make_shared<oauth1::experimental::oauth1_config>(std::move(config));
-    }
-#endif
 
     /// <summary>
     /// Get OAuth 2.0 configuration.
@@ -329,13 +308,12 @@ public:
         if (m_set_user_nativehandle_options) m_set_user_nativehandle_options(handle);
     }
 
-#if !defined(_WIN32) && !defined(__cplusplus_winrt) || defined(CPPREST_FORCE_HTTP_CLIENT_ASIO)
     /// <summary>
     /// Sets a callback to enable custom setting of the ssl context, at construction time.
     /// </summary>
     /// <param name="callback">A user callback allowing for customization of the ssl context at construction
     /// time.</param>
-    void set_ssl_context_callback(const std::function<void(boost::asio::ssl::context&)>& callback)
+    void set_ssl_context_callback(const std::function<void(ssl_context_t&)>& callback)
     {
         m_ssl_context_callback = callback;
     }
@@ -343,7 +321,7 @@ public:
     /// <summary>
     /// Gets the user's callback to allow for customization of the ssl context.
     /// </summary>
-    const std::function<void(boost::asio::ssl::context&)>& get_ssl_context_callback() const
+    const std::function<void(ssl_context_t&)>& get_ssl_context_callback() const
     {
         return m_ssl_context_callback;
     }
@@ -361,13 +339,8 @@ public:
     /// true otherwise.</param> <remarks>Note: This setting is enabled by default as it is required in most virtual
     /// hosting scenarios.</remarks>
     void set_tlsext_sni_enabled(bool tlsext_sni_enabled) { m_tlsext_sni_enabled = tlsext_sni_enabled; }
-#endif
 
 private:
-#if !defined(CPPREST_TARGET_XP)
-    std::shared_ptr<oauth1::experimental::oauth1_config> m_oauth1;
-#endif
-
     std::shared_ptr<oauth2::experimental::oauth2_config> m_oauth2;
     web_proxy m_proxy;
     http::client::credentials m_credentials;
@@ -386,10 +359,8 @@ private:
     std::function<void(native_handle)> m_set_user_nativehandle_options;
     std::function<void(native_handle)> m_set_user_nativesessionhandle_options;
 
-#if !defined(_WIN32) && !defined(__cplusplus_winrt) || defined(CPPREST_FORCE_HTTP_CLIENT_ASIO)
-    std::function<void(boost::asio::ssl::context&)> m_ssl_context_callback;
+    std::function<void(ssl_context_t&)> m_ssl_context_callback;
     bool m_tlsext_sni_enabled;
-#endif
 #if defined(_WIN32) && !defined(__cplusplus_winrt)
     bool m_buffer_request;
 #endif
@@ -403,6 +374,8 @@ class http_pipeline;
 class http_client
 {
 public:
+    using ssl_context = ssl_context_t;
+
     /// <summary>
     /// Creates a new http_client connected to specified uri.
     /// </summary>
