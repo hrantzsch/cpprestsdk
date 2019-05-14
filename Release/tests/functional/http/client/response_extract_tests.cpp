@@ -13,10 +13,6 @@
 
 #include "stdafx.h"
 
-#ifndef __cplusplus_winrt
-#include "cpprest/http_listener.h"
-#endif
-
 using namespace web;
 using namespace utility;
 using namespace concurrency;
@@ -306,30 +302,6 @@ SUITE(response_extract_tests)
         rsp = send_request_response(scoped.server(), &client, U("text/plain; charset=uis-ascii"), data);
         VERIFY_THROWS(rsp.extract_string().get(), http_exception);
     }
-
-#ifndef __cplusplus_winrt
-    TEST_FIXTURE(uri_address, extract_empty_string)
-    {
-        web::http::experimental::listener::http_listener listener(m_uri);
-        http_client client(m_uri);
-        listener.support([](http_request msg) {
-            auto ResponseStreamBuf = streams::producer_consumer_buffer<uint8_t>();
-            ResponseStreamBuf.close(std::ios_base::out).wait();
-            http_response response(status_codes::OK);
-            response.set_body(ResponseStreamBuf.create_istream(), U("text/plain"));
-            response.headers().add(header_names::connection, U("close"));
-            msg.reply(response).wait();
-        });
-
-        listener.open().wait();
-
-        auto response = client.request(methods::GET).get();
-        auto data = response.extract_string().get();
-
-        VERIFY_ARE_EQUAL(0, data.size());
-        listener.close().wait();
-    }
-#endif
 
     TEST_FIXTURE(uri_address, extract_json)
     {

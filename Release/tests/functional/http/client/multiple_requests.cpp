@@ -50,8 +50,7 @@ SUITE(multiple_requests)
     TEST_FIXTURE(uri_address, requests_with_data)
     {
         test_http_server::scoped_server scoped(m_uri);
-        http_client_config config;
-        http_client client(m_uri, config);
+        http_client client(m_uri, http_client_config());
 
         const size_t num_requests = 20;
         std::string request_body;

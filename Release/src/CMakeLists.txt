@@ -1,13 +1,50 @@
 cmake_policy(SET CMP0022 NEW)
 
-file(GLOB HEADERS_CPPREST "../include/cpprest/*.h" "../include/cpprest/*.hpp" "../include/cpprest/*.dat")
 file(GLOB HEADERS_PPLX "../include/pplx/*.h" "../include/pplx/*.hpp")
-file(GLOB HEADERS_DETAILS "../include/cpprest/details/*.h" "../include/cpprest/details/*.hpp" "../include/cpprest/details/*.dat" "../include/pplx/*.hpp" "../include/pplx/*.dat")
+
+set(HEADERS_CPPREST
+  ../include/cpprest/astreambuf.h
+  ../include/cpprest/asyncrt_utils.h
+  ../include/cpprest/base_uri.h
+  ../include/cpprest/client_authentication_info.h
+  ../include/cpprest/containerstream.h
+  ../include/cpprest/filestream.h
+  ../include/cpprest/http_client.h
+  ../include/cpprest/http_compression.h
+  ../include/cpprest/http_headers.h
+  ../include/cpprest/http_msg.h
+  ../include/cpprest/interopstream.h
+  ../include/cpprest/json.h
+  ../include/cpprest/oauth1.h
+  ../include/cpprest/oauth2.h
+  ../include/cpprest/producerconsumerstream.h
+  ../include/cpprest/rawptrstream.h
+  ../include/cpprest/streams.h
+  ../include/cpprest/uri_builder.h
+  ../include/cpprest/uri.h
+  ../include/cpprest/version.h
+  ../include/cpprest/ws_client.h
+  ../include/cpprest/ws_msg.h
+)
+
+set(HEADERS_DETAILS
+  ../include/cpprest/details/basic_types.h
+  ../include/cpprest/details/cpprest_compat.h
+  ../include/cpprest/details/fileio.h
+  ../include/cpprest/details/http_helpers.h
+  ../include/cpprest/details/nosal.h
+  ../include/cpprest/details/resource.h
+  ../include/cpprest/details/web_utilities.h
+  ../include/cpprest/details/SafeInt3.hpp
+  ../include/cpprest/details/http_constants.dat
+)
+
 source_group("Header Files\\cpprest" FILES ${HEADERS_CPPREST})
 source_group("Header Files\\pplx" FILES ${HEADERS_PPLX})
 source_group("Header Files\\cpprest\\details" FILES ${HEADERS_DETAILS})
 
 file(GLOB HEADER_PPLX_THREADPOOL "../include/pplx/threadpool.h")
+
 list(REMOVE_ITEM HEADERS_PPLX ${HEADER_PPLX_THREADPOOL})
 
 set(SOURCES
@@ -23,11 +60,6 @@ set(SOURCES
   http/common/http_helpers.cpp
   http/common/http_msg.cpp
   http/common/internal_http_helpers.h
-  http/listener/http_listener.cpp
-  http/listener/http_listener_msg.cpp
-  http/listener/http_server_api.cpp
-  http/listener/http_server_impl.h
-  http/oauth/oauth1.cpp
   http/oauth/oauth2.cpp
   json/json.cpp
   json/json_parsing.cpp
@@ -49,30 +81,7 @@ target_include_directories(cpprest
 
 ## Sub-components
 # Websockets component
-if(CPPREST_WEBSOCKETS_IMPL STREQUAL "none")
-  target_compile_definitions(cpprest PUBLIC -DCPPREST_EXCLUDE_WEBSOCKETS=1)
-elseif(CPPREST_WEBSOCKETS_IMPL STREQUAL "winrt")
-  target_sources(cpprest PRIVATE
-    websockets/client/ws_msg.cpp
-    websockets/client/ws_client.cpp
-    websockets/client/ws_client_impl.h
-    websockets/client/ws_client_winrt.cpp
-  )
-elseif(CPPREST_WEBSOCKETS_IMPL STREQUAL "wspp")
-  target_sources(cpprest PRIVATE
-    websockets/client/ws_msg.cpp
-    websockets/client/ws_client.cpp
-    websockets/client/ws_client_impl.h
-    websockets/client/ws_client_wspp.cpp
-  )
-  cpprest_find_websocketpp()
-  target_link_libraries(cpprest PRIVATE cpprestsdk_websocketpp_internal)
-  cpprest_find_boost()
-  cpprest_find_openssl()
-  target_link_libraries(cpprest PUBLIC cpprestsdk_boost_internal cpprestsdk_openssl_internal)
-else()
-  message(FATAL_ERROR "Invalid implementation")
-endif()
+target_compile_definitions(cpprest PUBLIC -DCPPREST_EXCLUDE_WEBSOCKETS=1)
 
 # Compression component
 if(CPPREST_EXCLUDE_COMPRESSION)
@@ -106,7 +115,7 @@ elseif(CPPREST_PPLX_IMPL STREQUAL "linux")
   endif()
 elseif(CPPREST_PPLX_IMPL STREQUAL "win")
   target_sources(cpprest PRIVATE pplx/pplxwin.cpp)
-  if(CPPREST_WEBSOCKETS_IMPL STREQUAL "wspp")
+  if(CPPREST_WEBSOCKETS_IMPL STREQUAL "wspp" OR CPPREST_HTTP_CLIENT_IMPL STREQUAL "asio")
     target_sources(cpprest PRIVATE pplx/threadpool.cpp ../include/pplx/threadpool.h)
     if(CPPREST_INSTALL_HEADERS)
       install(FILES ../include/pplx/threadpool.h DESTINATION include/pplx)
@@ -125,26 +134,10 @@ else()
 endif()
 
 # Http client component
-if(CPPREST_HTTP_CLIENT_IMPL STREQUAL "asio")
-  cpprest_find_boost()
-  cpprest_find_openssl()
-  target_compile_definitions(cpprest PUBLIC -DCPPREST_FORCE_HTTP_CLIENT_ASIO)
-  target_sources(cpprest PRIVATE http/client/http_client_asio.cpp http/client/x509_cert_utilities.cpp)
-  target_link_libraries(cpprest PUBLIC cpprestsdk_boost_internal cpprestsdk_openssl_internal)
-elseif(CPPREST_HTTP_CLIENT_IMPL STREQUAL "winhttp")
-  target_link_libraries(cpprest PRIVATE
-    httpapi.lib
-    Winhttp.lib
-  )
-  target_sources(cpprest PRIVATE http/client/http_client_winhttp.cpp)
-  if(CPPREST_WEBSOCKETS_IMPL STREQUAL "wspp")
-    target_sources(cpprest PRIVATE http/client/x509_cert_utilities.cpp)
-  endif()
-elseif(CPPREST_HTTP_CLIENT_IMPL STREQUAL "winrt")
-  target_sources(cpprest PRIVATE http/client/http_client_winrt.cpp)
-else()
-  message(FATAL_ERROR "Invalid implementation")
-endif()
+cpprest_find_boost()
+cpprest_find_botan()
+target_sources(cpprest PRIVATE http/client/http_client_asio.cpp http/client/x509_cert_utilities.cpp)
+target_link_libraries(cpprest PUBLIC cpprestsdk_boost_internal cpprestsdk_botan_internal)
 
 # fileio streams component
 if(CPPREST_FILEIO_IMPL STREQUAL "win32")
@@ -158,21 +151,7 @@ else()
 endif()
 
 # http listener component
-if(CPPREST_HTTP_LISTENER_IMPL STREQUAL "asio")
-  cpprest_find_boost()
-  cpprest_find_openssl()
-  target_compile_definitions(cpprest PUBLIC -DCPPREST_FORCE_HTTP_LISTENER_ASIO)
-  target_sources(cpprest PRIVATE http/listener/http_server_asio.cpp)
-  target_link_libraries(cpprest PUBLIC cpprestsdk_boost_internal cpprestsdk_openssl_internal)
-elseif(CPPREST_HTTP_LISTENER_IMPL STREQUAL "httpsys")
-  target_sources(cpprest PRIVATE
-    http/listener/http_server_httpsys.cpp
-    http/listener/http_server_httpsys.h
-  )
-elseif(CPPREST_HTTP_LISTENER_IMPL STREQUAL "none")
-else()
-  message(FATAL_ERROR "Invalid implementation")
-endif()
+# NONE
 
 if(MSVC)
   get_target_property(_srcs cpprest SOURCES)
@@ -247,7 +226,7 @@ if(CPPREST_INSTALL)
   set(CPPREST_USES_BOOST OFF)
   set(CPPREST_USES_ZLIB OFF)
   set(CPPREST_USES_BROTLI OFF)
-  set(CPPREST_USES_OPENSSL OFF)
+  set(CPPREST_USES_BOTAN OFF)
 
   set(CPPREST_TARGETS cpprest)
   if(TARGET cpprestsdk_boost_internal)
@@ -262,9 +241,9 @@ if(CPPREST_INSTALL)
     list(APPEND CPPREST_TARGETS cpprestsdk_brotli_internal)
     set(CPPREST_USES_BROTLI ON)
   endif()
-  if(TARGET cpprestsdk_openssl_internal)
-    list(APPEND CPPREST_TARGETS cpprestsdk_openssl_internal)
-    set(CPPREST_USES_OPENSSL ON)
+  if(TARGET cpprestsdk_botan_internal)
+    list(APPEND CPPREST_TARGETS cpprestsdk_botan_internal)
+    set(CPPREST_USES_BOTAN ON)
   endif()
   if(TARGET cpprestsdk_websocketpp_internal)
     list(APPEND CPPREST_TARGETS cpprestsdk_websocketpp_internal)

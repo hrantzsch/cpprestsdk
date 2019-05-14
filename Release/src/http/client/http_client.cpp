@@ -254,6 +254,7 @@ void _http_client_communicator::finish_request()
     }
 }
 
+http_client_config& _http_client_communicator::client_config() { return m_client_config; }
 const http_client_config& _http_client_communicator::client_config() const { return m_client_config; }
 
 const client_authentication_info& _http_client_communicator::supported_CA() const
@@ -376,7 +377,7 @@ void http_client::add_handler(const std::shared_ptr<http::http_pipeline_stage>& 
 
 http_client::http_client(const uri& base_uri) : http_client(base_uri, http_client_config()) {}
 
-http_client::http_client(const uri& base_uri, const http_client_config& client_config)
+http_client::http_client(const uri& base_uri, http_client_config client_config)
 {
     std::shared_ptr<details::_http_client_communicator> final_pipeline_stage;
 
@@ -387,29 +388,23 @@ http_client::http_client(const uri& base_uri, const http_client_config& client_c
         uri uriWithScheme = uribuilder.to_uri();
         verify_uri(uriWithScheme);
         final_pipeline_stage =
-            details::create_platform_final_pipeline_stage(std::move(uriWithScheme), http_client_config(client_config));
+            details::create_platform_final_pipeline_stage(std::move(uriWithScheme), std::move(client_config));
     }
     else
     {
         verify_uri(base_uri);
         final_pipeline_stage =
-            details::create_platform_final_pipeline_stage(uri(base_uri), http_client_config(client_config));
+            details::create_platform_final_pipeline_stage(uri(base_uri), std::move(client_config));
     }
 
     m_pipeline = std::make_shared<http_pipeline>(std::move(final_pipeline_stage));
 
-#if !defined(CPPREST_TARGET_XP)
-    add_handler(std::static_pointer_cast<http::http_pipeline_stage>(
-        std::make_shared<oauth1::details::oauth1_handler>(client_config.oauth1())));
-#endif
-
-    add_handler(std::static_pointer_cast<http::http_pipeline_stage>(
-        std::make_shared<oauth2::details::oauth2_handler>(client_config.oauth2())));
+    // Note: oauth2 handler stage has been removed
 }
 
 http_client::~http_client() CPPREST_NOEXCEPT {}
 
-const http_client_config& http_client::client_config() const { return m_pipeline->m_last_stage->client_config(); }
+http_client_config& http_client::client_config() { return m_pipeline->m_last_stage->client_config(); }
 
 const uri& http_client::base_uri() const { return m_pipeline->m_last_stage->base_uri(); }
 

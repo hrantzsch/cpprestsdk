@@ -134,7 +134,7 @@ SUITE(request_stream_tests)
 
         test_http_server::scoped_server scoped(m_uri);
         test_http_server* p_server = scoped.server();
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
 
         auto stream = OPEN_R<uint8_t>(fname).get();
         http_request msg(methods::POST);
@@ -164,7 +164,7 @@ SUITE(request_stream_tests)
 
         test_http_server::scoped_server scoped(address);
         test_http_server* p_server = scoped.server();
-        http_client client(address, config);
+        http_client client(address, std::move(config));
 
         p_server->next_request().then([&](test_request* p_request) {
             http_asserts::assert_test_request_equals(p_request, methods::POST, U("/"));

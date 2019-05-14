@@ -4,7 +4,7 @@
  **/
 #include "stdafx.h"
 
-#if !defined(CPPREST_EXCLUDE_WEBSOCKETS) || !defined(_WIN32)
+// unconditionally enabled, on windows as well
 #include "pplx/threadpool.h"
 #include <boost/asio/detail/thread.hpp>
 #include <new>
@@ -232,4 +232,3 @@ std::unique_ptr<crossplat::threadpool> crossplat::threadpool::construct(size_t n
 {
     return std::unique_ptr<crossplat::threadpool>(new threadpool_impl(num_threads));
 }
-#endif //  !defined(CPPREST_EXCLUDE_WEBSOCKETS) || !defined(_WIN32)

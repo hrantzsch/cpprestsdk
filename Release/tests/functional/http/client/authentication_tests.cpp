@@ -66,7 +66,7 @@ SUITE(authentication_tests)
             http_client_config client_config;
             web::credentials cred(U("some_user"), U("some_password")); // WinHTTP requires non-empty password
             client_config.set_credentials(cred);
-            http_client client(m_uri, client_config);
+            http_client client(m_uri, std::move(client_config));
             const method mtd = methods::POST;
 
             http_request msg(mtd);
@@ -123,7 +123,7 @@ SUITE(authentication_tests)
             http_client_config client_config;
             web::credentials cred(U("some_user"), U("some_password")); // WinHTTP requires non-empty password
             client_config.set_credentials(cred);
-            http_client client(m_uri, client_config);
+            http_client client(m_uri, std::move(client_config));
             const method mtd = methods::POST;
             utility::string_t contents(U("Hello World"));
 
@@ -208,7 +208,7 @@ SUITE(authentication_tests)
             http_client_config client_config;
             web::credentials cred(U("some_user"), U("some_password")); // WinHTTP requires non-empty password
             client_config.set_credentials(cred);
-            http_client client(m_uri, client_config);
+            http_client client(m_uri, std::move(client_config));
             const method mtd = methods::POST;
 
             std::vector<uint8_t> msg_body;
@@ -284,7 +284,7 @@ SUITE(authentication_tests)
             http_client_config client_config;
             web::credentials cred(U("some_user"), U("some_password"));
             client_config.set_credentials(cred);
-            http_client client(uri, client_config);
+            http_client client(uri, std::move(client_config));
 
             auto replyFunc = [&](test_request* p_request) {
                 std::map<utility::string_t, utility::string_t> headers;
@@ -392,7 +392,7 @@ SUITE(authentication_tests)
         http_client_config config;
         config.set_credentials(web::credentials(m_username, m_password));
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         http_response response = client.request(methods::GET).get();
         VERIFY_ARE_EQUAL(status_codes::Unauthorized, response.status_code());
     }
@@ -403,7 +403,7 @@ SUITE(authentication_tests)
 
         http_client_config config;
         config.set_credentials(web::credentials(m_username, m_password));
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         http_request req(methods::GET);
         req.headers().add(U("UserName"), m_username);
         req.headers().add(U("Password"), m_password);
@@ -417,7 +417,7 @@ SUITE(authentication_tests)
 
         http_client_config config;
         config.set_credentials(web::credentials(m_username, m_password));
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         http_response response = client.request(methods::GET).get();
         VERIFY_ARE_EQUAL(status_codes::Forbidden, response.status_code());
     }
@@ -429,7 +429,7 @@ SUITE(authentication_tests)
 
         http_client_config config;
         config.set_credentials(web::credentials(m_username, m_password));
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         http_request req(methods::GET);
         req.headers().add(U("UserName"), m_username);
         req.headers().add(U("Password"), m_password);
@@ -444,7 +444,7 @@ SUITE(authentication_tests)
 
         http_client_config config;
         config.set_credentials(web::credentials(m_username, m_password));
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
 
         const size_t rawDataSize = 8;
 
@@ -471,7 +471,7 @@ SUITE(authentication_tests)
             auto hr = handle->SetProperty(XHR_PROP_TIMEOUT, 1000);
             if (!SUCCEEDED(hr)) throw std::runtime_error("The Test Exception");
         });
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         auto response = client.request(methods::GET).get();
         VERIFY_ARE_EQUAL(200, response.status_code());
     }
@@ -494,7 +494,7 @@ SUITE(authentication_tests)
             }
         });
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
 
         const size_t rawDataSize = 8;
 
@@ -525,7 +525,7 @@ SUITE(authentication_tests)
         VERIFY_IS_TRUE(config.buffer_request());
         config.set_credentials(web::credentials(U("USERNAME"), U("PASSWORD")));
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
 
         pplx::task<void> t, t2;
         test_http_server::scoped_server scoped(m_uri);
@@ -592,7 +592,7 @@ SUITE(authentication_tests)
         config.set_buffer_request(true);
         config.set_credentials(web::credentials(U("USERNAME"), U("PASSWORD")));
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         pplx::task<void> t;
         {
             test_http_server::scoped_server scoped(m_uri);
@@ -630,7 +630,7 @@ SUITE(authentication_tests)
         http_client_config config;
         class TestException;
         config.set_nativehandle_options([](native_handle) { throw std::runtime_error("The Test exception"); });
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         VERIFY_THROWS(client.request(methods::GET).get(), std::runtime_error);
     }
 #endif // _WIN32
@@ -642,7 +642,7 @@ SUITE(authentication_tests)
             http_client_config config;
             web::credentials cred(U("user"), U("schmuser"));
             config.set_credentials(cred);
-            http_client client(U("https://apis.live.net"), config);
+            http_client client(U("https://apis.live.net"), std::move(config));
             http_response response = client.request(methods::GET, U("V5.0/me/skydrive/files")).get();
             VERIFY_ARE_EQUAL(status_codes::Unauthorized, response.status_code());
             auto v = response.extract_vector().get();
@@ -669,7 +669,7 @@ SUITE(authentication_tests)
         http_client_config client_config;
         web::credentials cred(U(user), U(password));
         client_config.set_credentials(cred);
-        http_client client(U("http://httpbin.org/basic-auth/user1/user1"), client_config);
+        http_client client(U("http://httpbin.org/basic-auth/user1/user1"), std::move(client_config));
 
         http_response response = client.request(methods::GET).get();
         VERIFY_ARE_EQUAL(return_code, response.status_code());
@@ -690,7 +690,7 @@ SUITE(authentication_tests)
             // Socket shouldn't be open yet since no requests have gone out.
             VERIFY_ARE_EQUAL(false, socket->is_open());
         });
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         auto response = client.request(methods::GET).get();
         VERIFY_ARE_EQUAL(200, response.status_code());
     }
@@ -706,7 +706,7 @@ SUITE(authentication_tests)
                 VERIFY_ARE_EQUAL(false, tcpLayer.is_open());
             });
 
-            http_client client(U("https://apis.live.net"), config);
+            http_client client(U("https://apis.live.net"), std::move(config));
             http_response response = client.request(methods::GET, U("V5.0/me/skydrive/files")).get();
             VERIFY_ARE_EQUAL(status_codes::Unauthorized, response.status_code());
             auto v = response.extract_vector().get();

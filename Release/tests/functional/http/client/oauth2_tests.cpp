@@ -300,7 +300,7 @@ SUITE(oauth2_tests)
         {
             config.set_oauth2(m_oauth2_config);
 
-            http_client client(m_uri, config);
+            http_client client(m_uri, std::move(config));
             m_scoped.server()->next_request().then([](test_request* request) {
                 VERIFY_ARE_EQUAL(U("Bearer 12345678"), request->m_headers[header_names::authorization]);
                 VERIFY_ARE_EQUAL(U("/"), request->m_path);
@@ -316,7 +316,7 @@ SUITE(oauth2_tests)
             m_oauth2_config.set_bearer_auth(false);
             config.set_oauth2(m_oauth2_config);
 
-            http_client client(m_uri, config);
+            http_client client(m_uri, std::move(config));
             m_scoped.server()->next_request().then([](test_request* request) {
                 VERIFY_ARE_EQUAL(U(""), request->m_headers[header_names::authorization]);
                 VERIFY_ARE_EQUAL(U("/?access_token=12345678"), request->m_path);
@@ -334,7 +334,7 @@ SUITE(oauth2_tests)
             m_oauth2_config.set_token(oauth2_token(U("Sesame")));
             config.set_oauth2(m_oauth2_config);
 
-            http_client client(m_uri, config);
+            http_client client(m_uri, std::move(config));
             m_scoped.server()->next_request().then([](test_request* request) {
                 VERIFY_ARE_EQUAL(U(""), request->m_headers[header_names::authorization]);
                 VERIFY_ARE_EQUAL(U("/?open=Sesame"), request->m_path);

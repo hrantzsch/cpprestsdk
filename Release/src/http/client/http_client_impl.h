@@ -128,6 +128,7 @@ public:
 
     void finish_request();
 
+    http_client_config& client_config();
     const http_client_config& client_config() const;
 
     const uri& base_uri() const;

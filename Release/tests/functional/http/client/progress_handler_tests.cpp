@@ -35,7 +35,7 @@ SUITE(progress_handler_tests)
         http_client_config config;
         config.set_chunksize(512);
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         const method mtd = methods::GET;
         utility::size64_t upsize = 4711u, downsize = 4711u;
         int calls = 0;
@@ -72,7 +72,7 @@ SUITE(progress_handler_tests)
         http_client_config config;
         config.set_chunksize(512);
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         const method mtd = methods::POST;
         utility::string_t data;
         utility::string_t content_type = U("text/plain; charset=utf-8");
@@ -120,7 +120,7 @@ SUITE(progress_handler_tests)
         http_client_config config;
         config.set_chunksize(512);
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         const method mtd = methods::GET;
 
         utility::size64_t upsize = 4711u, downsize = 4711u;
@@ -167,7 +167,7 @@ SUITE(progress_handler_tests)
         http_client_config config;
         config.set_chunksize(512);
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         const method mtd = methods::POST;
         utility::string_t data;
         utility::string_t content_type = U("text/plain; charset=utf-8");
@@ -256,7 +256,7 @@ SUITE(progress_handler_tests)
         config.set_chunksize(512);
         config.set_timeout(utility::seconds(1));
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
 
         const method mtd = methods::POST;
         utility::string_t data;

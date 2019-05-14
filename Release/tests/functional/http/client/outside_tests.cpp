@@ -72,7 +72,7 @@ SUITE(outside_tests)
         http_client_config config;
         config.set_request_compressed_response(true);
 
-        http_client client(U("https://en.wikipedia.org/wiki/HTTP_compression"), config);
+        http_client client(U("https://en.wikipedia.org/wiki/HTTP_compression"), std::move(config));
         http_request httpRequest(methods::GET);
 
         http_response response = client.request(httpRequest).get();
@@ -213,7 +213,7 @@ SUITE(outside_tests)
         handle_timeout([&base_uri] {
             http_client_config config;
             config.set_validate_certificates(false);
-            http_client client(base_uri, config);
+            http_client client(base_uri, std::move(config));
             auto response = client.request(methods::GET).get();
             VERIFY_ARE_EQUAL(status_codes::OK, response.status_code());
         });
@@ -283,7 +283,7 @@ SUITE(outside_tests)
             http_client_config config;
             config.set_validate_certificates(false);
             config.set_timeout(std::chrono::seconds(1));
-            http_client client(U("https://expired.badssl.com/"), config);
+            http_client client(U("https://expired.badssl.com/"), std::move(config));
 
             auto request = client.request(methods::GET).get();
             VERIFY_ARE_EQUAL(status_codes::OK, request.status_code());

@@ -1,7 +1,6 @@
 set(SOURCES
   http_asserts.cpp
   test_http_client.cpp
-  test_http_server.cpp
   test_server_utilities.cpp
 )
 

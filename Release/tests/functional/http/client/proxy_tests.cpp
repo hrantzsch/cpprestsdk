@@ -104,7 +104,7 @@ SUITE(proxy_tests)
         http_client_config config;
         config.set_proxy(web_proxy::use_auto_discovery);
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         http_asserts::assert_response_equals(client.request(methods::PUT, U("/"), U("this is a test")).get(),
                                              status_codes::OK);
 
@@ -123,7 +123,7 @@ SUITE(proxy_tests)
         http_client_config config;
         config.set_proxy(web_proxy::disabled);
 
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
         http_asserts::assert_response_equals(client.request(methods::PUT, U("/"), U("sample data")).get(),
                                              status_codes::OK);
 
@@ -137,7 +137,7 @@ SUITE(proxy_tests)
     {
         http_client_config config;
         config.set_proxy(web_proxy::use_auto_discovery);
-        http_client client(m_uri, config);
+        http_client client(m_uri, std::move(config));
 
         VERIFY_THROWS(client.request(methods::GET, U("/")).get(), http_exception);
     }
@@ -167,7 +167,7 @@ SUITE(proxy_tests)
 
         // Access to this server will succeed because the first request will not be challenged and hence
         // my bogus credentials will not be supplied.
-        http_client client(U("http://www.microsoft.com"), config);
+        http_client client(U("http://www.microsoft.com"), std::move(config));
 
         try
         {
@@ -193,7 +193,7 @@ SUITE(proxy_tests)
         http_client_config config;
         config.set_proxy(web_proxy(proxy_uri));
 
-        http_client client(U("http://httpbin.org"), config);
+        http_client client(U("http://httpbin.org"), std::move(config));
 
         http_response response = client.request(methods::GET).get();
         VERIFY_ARE_EQUAL(status_codes::OK, response.status_code());
@@ -205,7 +205,7 @@ SUITE(proxy_tests)
         http_client_config config;
         config.set_proxy(web_proxy(proxy_uri));
 
-        http_client client(U("https://httpbin.org"), config);
+        http_client client(U("https://httpbin.org"), std::move(config));
 
         http_response response = client.request(methods::GET).get();
         VERIFY_ARE_EQUAL(status_codes::OK, response.status_code());

@@ -55,7 +55,7 @@ SUITE(request_helper_tests)
             auto& server = *scoped.server();
             http_client_config config;
             config.set_request_compressed_response(true);
-            http_client client(m_uri, config);
+            http_client client(m_uri, std::move(config));
 
             server.next_request().then([](test_request* p_request) {
                 p_request->reply(200, U("OK"), {{header_names::content_encoding, U("unsupported-algorithm")}});
@@ -73,7 +73,7 @@ SUITE(request_helper_tests)
             auto& server = *scoped.server();
             http_client_config config;
             config.set_request_compressed_response(true);
-            http_client client(m_uri, config);
+            http_client client(m_uri, std::move(config));
 
             std::atomic<bool> found_accept_encoding(false);
 

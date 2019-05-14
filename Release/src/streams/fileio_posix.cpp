@@ -18,6 +18,7 @@
 #include "stdafx.h"
 
 #include "cpprest/details/fileio.h"
+#include <boost/asio.hpp>
 
 using namespace boost::asio;
 using namespace Concurrency::streams::details;

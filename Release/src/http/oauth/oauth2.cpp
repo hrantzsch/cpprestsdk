@@ -138,7 +138,7 @@ pplx::task<void> oauth2_config::_request_token(uri_builder& request_body_ub)
     http_client_config config;
     config.set_proxy(m_proxy);
 
-    http_client token_client(token_endpoint(), config);
+    http_client token_client(token_endpoint(), std::move(config));
 
     return token_client.request(request)
         .then([](http_response resp) { return resp.extract_json(); })

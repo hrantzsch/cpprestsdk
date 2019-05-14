@@ -55,21 +55,19 @@ typedef void* native_handle;
 #include <limits>
 #include <memory>
 
-#if !defined(CPPREST_TARGET_XP)
-#include "cpprest/oauth1.h"
-#endif
-
 #include "cpprest/oauth2.h"
 
-#if !defined(_WIN32) && !defined(__cplusplus_winrt) || defined(CPPREST_FORCE_HTTP_CLIENT_ASIO)
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wconversion"
 #endif
-#include "boost/asio/ssl.hpp"
+
+#include <botan/asio_context.h>
+#include <botan/auto_rng.h>
+#include <botan/certstor_system.h>
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
-#endif
 #endif
 
 /// The web namespace contains functionality common to multiple protocols like HTTP and WebSockets.
@@ -81,6 +79,41 @@ namespace http
 /// HTTP client side library.
 namespace client
 {
+/// <summary>
+/// A helper class to construct a Botan::TLS::Context.
+/// This class default-initializes members required by the Botan context and
+/// manages their lifetime.
+/// </summary>
+class TLSContextHelper
+{
+public:
+    Botan::TLS::Context make_tls_context()
+    {
+        return Botan::TLS::Context(credentials_manager, rng, session_manager, policy);
+    }
+
+private:
+    class Credentials_Manager : public Botan::Credentials_Manager
+    {
+    public:
+        Credentials_Manager() {}
+
+        std::vector<Botan::Certificate_Store*> trusted_certificate_authorities(const std::string&,
+                                                                               const std::string&) override
+        {
+            return {&cert_store_};
+        }
+
+    private:
+        Botan::System_Certificate_Store cert_store_;
+    };
+
+    Credentials_Manager credentials_manager;
+    Botan::AutoSeeded_RNG rng;
+    Botan::TLS::Session_Manager_Noop session_manager;
+    Botan::TLS::Default_Policy policy;
+};
+
 // credentials and web_proxy class has been moved from web::http::client namespace to web namespace.
 // The below using declarations ensure we don't break existing code.
 // Please use the web::credentials and web::web_proxy class going forward.
@@ -102,31 +135,30 @@ public:
 #if !defined(__cplusplus_winrt)
         , m_validate_certificates(true)
 #endif
-#if !defined(_WIN32) && !defined(__cplusplus_winrt) || defined(CPPREST_FORCE_HTTP_CLIENT_ASIO)
+        , m_context_helper(new TLSContextHelper())
+        , m_ssl_context(m_context_helper->make_tls_context())
         , m_tlsext_sni_enabled(true)
-#endif
 #if defined(_WIN32) && !defined(__cplusplus_winrt)
         , m_buffer_request(false)
 #endif
     {
     }
 
-#if !defined(CPPREST_TARGET_XP)
-    /// <summary>
-    /// Get OAuth 1.0 configuration.
-    /// </summary>
-    /// <returns>Shared pointer to OAuth 1.0 configuration.</returns>
-    const std::shared_ptr<oauth1::experimental::oauth1_config> oauth1() const { return m_oauth1; }
-
-    /// <summary>
-    /// Set OAuth 1.0 configuration.
-    /// </summary>
-    /// <param name="config">OAuth 1.0 configuration to set.</param>
-    void set_oauth1(oauth1::experimental::oauth1_config config)
-    {
-        m_oauth1 = std::make_shared<oauth1::experimental::oauth1_config>(std::move(config));
-    }
+    http_client_config(Botan::TLS::Context ssl_context)
+        : m_guarantee_order(false)
+        , m_timeout(std::chrono::seconds(30))
+        , m_chunksize(0)
+        , m_request_compressed(false)
+#if !defined(__cplusplus_winrt)
+        , m_validate_certificates(true)
 #endif
+        , m_ssl_context(std::move(ssl_context))
+        , m_tlsext_sni_enabled(true)
+#if defined(_WIN32) && !defined(__cplusplus_winrt)
+        , m_buffer_request(false)
+#endif
+    {
+    }
 
     /// <summary>
     /// Get OAuth 2.0 configuration.
@@ -329,24 +361,11 @@ public:
         if (m_set_user_nativehandle_options) m_set_user_nativehandle_options(handle);
     }
 
-#if !defined(_WIN32) && !defined(__cplusplus_winrt) || defined(CPPREST_FORCE_HTTP_CLIENT_ASIO)
     /// <summary>
-    /// Sets a callback to enable custom setting of the ssl context, at construction time.
+    /// Gets the Botan::TLS::Context.
     /// </summary>
-    /// <param name="callback">A user callback allowing for customization of the ssl context at construction
-    /// time.</param>
-    void set_ssl_context_callback(const std::function<void(boost::asio::ssl::context&)>& callback)
-    {
-        m_ssl_context_callback = callback;
-    }
-
-    /// <summary>
-    /// Gets the user's callback to allow for customization of the ssl context.
-    /// </summary>
-    const std::function<void(boost::asio::ssl::context&)>& get_ssl_context_callback() const
-    {
-        return m_ssl_context_callback;
-    }
+    Botan::TLS::Context& get_ssl_context() { return m_ssl_context; }
+    const Botan::TLS::Context& get_ssl_context() const { return m_ssl_context; }
 
     /// <summary>
     /// Gets the TLS extension server name indication (SNI) status.
@@ -361,13 +380,8 @@ public:
     /// true otherwise.</param> <remarks>Note: This setting is enabled by default as it is required in most virtual
     /// hosting scenarios.</remarks>
     void set_tlsext_sni_enabled(bool tlsext_sni_enabled) { m_tlsext_sni_enabled = tlsext_sni_enabled; }
-#endif
 
 private:
-#if !defined(CPPREST_TARGET_XP)
-    std::shared_ptr<oauth1::experimental::oauth1_config> m_oauth1;
-#endif
-
     std::shared_ptr<oauth2::experimental::oauth2_config> m_oauth2;
     web_proxy m_proxy;
     http::client::credentials m_credentials;
@@ -386,10 +400,9 @@ private:
     std::function<void(native_handle)> m_set_user_nativehandle_options;
     std::function<void(native_handle)> m_set_user_nativesessionhandle_options;
 
-#if !defined(_WIN32) && !defined(__cplusplus_winrt) || defined(CPPREST_FORCE_HTTP_CLIENT_ASIO)
-    std::function<void(boost::asio::ssl::context&)> m_ssl_context_callback;
+    std::unique_ptr<TLSContextHelper> m_context_helper;
+    Botan::TLS::Context m_ssl_context;
     bool m_tlsext_sni_enabled;
-#endif
 #if defined(_WIN32) && !defined(__cplusplus_winrt)
     bool m_buffer_request;
 #endif
@@ -403,6 +416,8 @@ class http_pipeline;
 class http_client
 {
 public:
+    using ssl_context = Botan::TLS::Context;
+
     /// <summary>
     /// Creates a new http_client connected to specified uri.
     /// </summary>
@@ -416,7 +431,7 @@ public:
     /// <param name="base_uri">A string representation of the base uri to be used for all requests. Must start with
     /// either "http://" or "https://"</param> <param name="client_config">The http client configuration object
     /// containing the possible configuration options to initialize the <c>http_client</c>. </param>
-    _ASYNCRTIMP http_client(const uri& base_uri, const http_client_config& client_config);
+    _ASYNCRTIMP http_client(const uri& base_uri, http_client_config client_config);
 
     /// <summary>
     /// Note the destructor doesn't necessarily close the connection and release resources.
@@ -436,6 +451,7 @@ public:
     /// Get client configuration object
     /// </summary>
     /// <returns>A reference to the client configuration object.</returns>
+    _ASYNCRTIMP http_client_config& client_config();
     _ASYNCRTIMP const http_client_config& client_config() const;
 
     /// <summary>
