@@ -257,18 +257,6 @@ void _http_client_communicator::finish_request()
 http_client_config& _http_client_communicator::client_config() { return m_client_config; }
 const http_client_config& _http_client_communicator::client_config() const { return m_client_config; }
 
-const client_authentication_info& _http_client_communicator::supported_CA() const
-{
-    pplx::extensibility::scoped_critical_section_t lock(m_client_authInfo_lock);
-    return m_supported_ca;
-}
-
-void _http_client_communicator::set_supported_CA(const client_authentication_info& ca)
-{
-    pplx::extensibility::scoped_critical_section_t lock(m_client_authInfo_lock);
-    m_supported_ca = ca;
-}
-
 const uri& _http_client_communicator::base_uri() const { return m_uri; }
 
 _http_client_communicator::_http_client_communicator(http::uri&& address, http_client_config&& client_config)
@@ -426,30 +414,6 @@ pplx::task<http_response> http_client::request(http_request request, const pplx:
     request._set_base_uri(base_uri());
     request._set_cancellation_token(token);
     return m_pipeline->propagate(request);
-}
-
-pplx::task<client_authentication_info> http_client::authorized_ca()
-{
-    auto clientAuthInfo = this->m_pipeline->m_last_stage->supported_CA();
-    if (clientAuthInfo)
-    {
-        return pplx::task_from_result(clientAuthInfo);
-    }
-
-    return
-        this->request(web::http::methods::GET)
-        .then([&](pplx::task<web::http::http_response> resp) {
-            try
-            {
-                resp.wait();
-            }
-            catch (const std::exception &)
-            {
-                // In case that client auth is needed this request fails and we get
-                // the required information about the supported certificate authorities.
-            }
-            return this->m_pipeline->m_last_stage->supported_CA();
-        });
 }
 
 } // namespace client

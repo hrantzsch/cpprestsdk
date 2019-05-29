@@ -6,7 +6,6 @@ set(HEADERS_CPPREST
   ../include/cpprest/astreambuf.h
   ../include/cpprest/asyncrt_utils.h
   ../include/cpprest/base_uri.h
-  ../include/cpprest/client_authentication_info.h
   ../include/cpprest/containerstream.h
   ../include/cpprest/filestream.h
   ../include/cpprest/http_client.h
